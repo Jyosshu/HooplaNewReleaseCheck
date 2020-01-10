@@ -36,12 +36,12 @@ namespace HooplaNewReleaseCheck
                     if (AppSettings.Authors.Any(db.ArtistName.Contains))
                     {
                         newBooksToRead.Add(db);
-                        Console.WriteLine("Added the book, {0}, by {1} to the list.", db.Title, db.ArtistName);
+                        Console.WriteLine("Added {0}, by {1} to the list.", db.Title, db.ArtistName);
                     }
                     else if (AppSettings.Titles.Any(db.Title.Contains))
                     {
                         newBooksToRead.Add(db);
-                        Console.WriteLine("Added the book, {0}, by {1} to the list.", db.Title, db.ArtistName);
+                        Console.WriteLine("Added {0}, by {1} to the list.", db.Title, db.ArtistName);
                     }
                 }
                 catch (Exception ex)
