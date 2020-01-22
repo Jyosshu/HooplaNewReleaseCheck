@@ -12,29 +12,23 @@ namespace HooplaNewReleaseCheck
         {
             // TODO: Create a list of titles and or authors that I am interested in checking up on.  This list could live in a database, json, Google sheet???? or hardcoded.  
 
-            // TODO: Use Hoopla API for recently added titles
-            // https://hoopla-ws.hoopladigital.com/kinds/10/titles/new?offset=0&limit=200&kindId=10&wwwVersion=4.31.0
-
             try
             {
-                Uri uri = new Uri("https://hoopla-ws.hoopladigital.com/kinds/10/titles/new?offset=0&limit=200&kindId=10&wwwVersion=4.31.0");
+                Uri uri = new Uri(AppSettings.HooplaRecentReleasesUrl);
 
                 // Without setting Default Request Headers you will receive 500 Error
                 client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36");
                 string responseBody = await client.GetStringAsync(uri);
 
-                //Console.WriteLine(responseBody);
-
                 HooplaResponse hooplaResponse = new HooplaResponse();
                 hooplaResponse.GetBooksFromJson(responseBody);
-                hooplaResponse.SendResultsByEmail();
+                await hooplaResponse.SendEmailAsync();
             }
             catch (HttpRequestException ex)
             {
                 Console.WriteLine("\nException Caught!");
                 Console.WriteLine("Message :{0} ", ex.Message);
             }
-            // TODO: Take json response and look for entries that might be of interest.
         }
     }
 }

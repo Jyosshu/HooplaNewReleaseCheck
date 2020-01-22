@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 using Newtonsoft.Json;
 using System.Linq;
-using MailKit;
-using MimeKit;
-using MailKit.Net.Smtp;
-using HooplaNewReleaseCheck.Models;
+using SendGrid;
+using SendGrid.Helpers.Mail;
+using System.Threading.Tasks;
 
 namespace HooplaNewReleaseCheck
 {
@@ -51,35 +50,27 @@ namespace HooplaNewReleaseCheck
             }
         }
 
-        public void SendResultsByEmail()
+        public Task SendEmailAsync()
         {
-            User user = AppSettings.GetUser();
+            string message = BuildMessageString();
+ 
+            return Execute(AppSettings.SendGridApiKey,
+                AppSettings.DefaultEmail.ToEmail,
+                AppSettings.DefaultEmail.Subject,
+                message);
+        }
 
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress("Josh Wygle", "jwygle.dev@gmail.com"));
-            message.To.Add(new MailboxAddress("Josh Wygle", "jwygle@gmail.com"));
-            message.Subject = $"Hoopla Recent Releases Results - {DateTime.Now.ToString("yyyy-MM-dd HH:mm")}";
+        private Task Execute(string apiKey, string toEmail, string subject, string message)
+        {
+            var client = new SendGridClient(apiKey);
 
-            message.Body = new TextPart("plain")
-            {
-                Text = $@"Hello Josh,
-                There were {newBooksToRead.Count} matches to the current criteria.
-                {BuildMessageString()}"
-            };
+            EmailAddress from = new EmailAddress(AppSettings.DefaultEmail.FromEmail, "HooplaNewReleaseCheck");
+            EmailAddress to = new EmailAddress(toEmail);
 
-            using (var client = new SmtpClient())
-            {
-                // For demo-purposes, accept all SSL certificates (in case the server supports STARTTLS)
-                client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+            var msg = MailHelper.CreateSingleEmail(from, to, subject, message, message);
+            
 
-                client.Connect("smtp.gmail.com", 587, false);
-
-                // Note: only needed if the SMTP server requires authentication
-                client.Authenticate(user.Username, user.Password);
-
-                client.Send(message);
-                client.Disconnect(true);
-            }
+            return client.SendEmailAsync(msg);
         }
 
         private string BuildMessageString()
@@ -88,12 +79,16 @@ namespace HooplaNewReleaseCheck
 
             if (newBooksToRead.Count > 0)
             {
+                message.Append($"Hello Josh,\n\nThere were {newBooksToRead.Count} matches to the current criteria.\n\n");
+                //message.Append(String.Format("{0:-30} {1:50} {2:20}\n\n", "Title", "Author", "Release Date"));
+
                 foreach (DigitalBook book in newBooksToRead)
                 {
                     try
                     {
                         Uri tempUri = new Uri(AppSettings.TitleBaseUri, $"title/{book.TitleId}");
-                        message.AppendLine($"{book.Title}\t{book.ArtistName}\n{tempUri}\n");
+
+                        message.AppendLine(String.Format("Title: {0}\nArtist: {1}\nRelease Date: {2}\n{3}\n\n", book.Title, book.ArtistName, book.ReleaseDateFormatted, tempUri));
                     }
                     catch (Exception ex)
                     {

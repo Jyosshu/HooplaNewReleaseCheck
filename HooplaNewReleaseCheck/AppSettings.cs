@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using HooplaNewReleaseCheck.Models;
 
 namespace HooplaNewReleaseCheck
 {
@@ -11,26 +8,38 @@ namespace HooplaNewReleaseCheck
 
         public static Uri TitleBaseUri = new Uri("https://www.hoopladigital.com");
 
+        public static string HooplaRecentReleasesUrl
+        {
+            get => "https://hoopla-ws.hoopladigital.com/kinds/10/titles/new?offset=0&limit=300&kindId=10&wwwVersion=4.31.0";
+        }
+
         public static string[] Authors = { "Jonathan Hickman", "Brian K. Vaughan", "Marjorie Liu", "Rick Remender", "Geoff Johns", "Tom King", "Mike Carey", "Neil Gaiman" };
 
         public static string[] Titles = { "East of West", "Saga", "Monstress", "Deadly Class" };
 
-        private static string emailUser = Environment.GetEnvironmentVariable("emailUser");
+        public static string SendGridApiKey = Environment.GetEnvironmentVariable("SendGrid_Api_Key");
 
-        public static User GetUser()
+        public static class DefaultEmail
         {
-            User user = null;
-
-            try
+            public static string FromEmail
             {
-                user = JsonConvert.DeserializeObject<User>(emailUser);
-            }
-            catch (JsonException je)
-            {
-                Console.WriteLine("An exception was caught.  {0}", je.Message);
+                get => "jwygle.dev@gmail.com";
             }
 
-            return user;
+            public static string ToEmail
+            {
+                get => "jwygle@gmail.com";
+            }
+
+            public static string Subject
+            {
+                get => $"Hoopla Recent Releases Results - {DateTime.Now.ToString("yyyy-MM-dd HH:mm")}";
+            }
+
+            public static string Message
+            {
+                get => "";
+            }
         }
     }
 }
