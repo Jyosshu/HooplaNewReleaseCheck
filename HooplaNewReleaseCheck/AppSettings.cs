@@ -15,7 +15,7 @@ namespace HooplaNewReleaseCheck
 
         public static string[] Authors = { "Jonathan Hickman", "Brian K. Vaughan", "Marjorie Liu", "Rick Remender", "Geoff Johns", "Tom King", "Mike Carey", "Neil Gaiman" };
 
-        public static string[] Titles = { "East of West", "Saga", "Monstress", "Deadly Class" };
+        public static string[] Titles = { "East of West", "Saga", "Monstress", "Deadly Class" , "Aquaman", "Wonder Woman"};
 
         public static string SendGridApiKey = Environment.GetEnvironmentVariable("SendGrid_Api_Key");
 

@@ -10,7 +10,8 @@ namespace HooplaNewReleaseCheck
 
         static async Task Main()
         {
-            // TODO: Create a list of titles and or authors that I am interested in checking up on.  This list could live in a database, json, Google sheet???? or hardcoded.  
+            // TODO: Create a list of titles and authors that I am interested in checking up on.  This list could live in a database, json, Google sheet???? or hardcoded.
+            // TODO: Maybe save results to Db.  The would have a null Borrowed dateTime.  This could get updated once the book has been borrowed and read.
 
             try
             {
@@ -22,6 +23,7 @@ namespace HooplaNewReleaseCheck
 
                 HooplaResponse hooplaResponse = new HooplaResponse();
                 hooplaResponse.GetBooksFromJson(responseBody);
+
                 await hooplaResponse.SendEmailAsync();
             }
             catch (HttpRequestException ex)
