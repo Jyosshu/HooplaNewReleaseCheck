@@ -3,101 +3,84 @@ using System.Collections.Generic;
 using System.Text;
 using Newtonsoft.Json;
 using System.Linq;
-using SendGrid;
-using SendGrid.Helpers.Mail;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using System.Net.Http;
 
 namespace HooplaNewReleaseCheck
 {
-    public class HooplaResponse
+    public class HooplaResponse : IHooplaResponse
     {
-        private List<DigitalBook> digitalBooks;
-        private List<DigitalBook> newBooksToRead;
+        private readonly IConfiguration _config;
+        private readonly ILogger<HooplaResponse> _log;
 
+        static readonly HttpClient client = new HttpClient();
 
-        public void GetBooksFromJson(string jsonResponse)
+        public HooplaResponse(IConfiguration config, ILogger<HooplaResponse> log)
+        {
+            _config = config;
+            _log = log;
+        }
+
+        public async Task<List<DigitalBook>> Run()
+        {
+            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36");
+            List<DigitalBook> digitalBooks = GetBooksFromJson(await client.GetStringAsync(_config.GetValue<string>("HooplaRecentReleasesUrl")));
+
+            if (digitalBooks.Count > 0)
+            {
+               return FindNewBooksFromList(digitalBooks);
+
+            }
+            else
+            {
+                _log.LogInformation("There were no new books from Hoopla.");
+                return null;
+            }
+        }
+
+        private List<DigitalBook> GetBooksFromJson(string jsonResponse)
         {
             try
             {
-                digitalBooks = JsonConvert.DeserializeObject<List<DigitalBook>>(jsonResponse);
+                return JsonConvert.DeserializeObject<List<DigitalBook>>(jsonResponse);
             }
             catch (JsonException je)
             {
-                Console.WriteLine("An exception was caught while deserializing the json!  {0}", je.Message);
+                _log.LogError(je, je.Message);
+                return null;
             }
+        }
 
-            newBooksToRead = new List<DigitalBook>();
+        private List<DigitalBook> FindNewBooksFromList(List<DigitalBook> digitalBooks)
+        {
+            string[] authors = _config.GetSection("Authors").Get<string[]>();
+            string[] titles = _config.GetSection("Titles").Get<string[]>();
+            List<DigitalBook> output = new List<DigitalBook>();
 
             foreach (DigitalBook db in digitalBooks)
             {
                 try
                 {
-                    if (AppSettings.Authors.Any(db.ArtistName.Contains))
+                    if (authors.Any(db.ArtistName.Contains))
                     {
-                        newBooksToRead.Add(db);
-                        Console.WriteLine("Added {0}, by {1} to the list.", db.Title, db.ArtistName);
+                        output.Add(db);
+                        _log.LogInformation("Added {0}, by {1} to the list.", db.Title, db.ArtistName);
                     }
-                    else if (AppSettings.Titles.Any(db.Title.Contains))
+                    else if (titles.Any(db.Title.Contains))
                     {
-                        newBooksToRead.Add(db);
-                        Console.WriteLine("Added {0}, by {1} to the list.", db.Title, db.ArtistName);
+                        output.Add(db);
+                        _log.LogInformation("Added {0}, by {1} to the list.", db.Title, db.ArtistName);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("An exception was caught!  {0}", ex.Message);
-                }
-            }
-        }
-
-        public Task SendEmailAsync()
-        {
-            string message = BuildMessageString();
- 
-            return Execute(AppSettings.SendGridApiKey,
-                AppSettings.DefaultEmail.ToEmail,
-                AppSettings.DefaultEmail.Subject,
-                message);
-        }
-
-        private Task Execute(string apiKey, string toEmail, string subject, string message)
-        {
-            var client = new SendGridClient(apiKey);
-
-            EmailAddress from = new EmailAddress(AppSettings.DefaultEmail.FromEmail, "HooplaNewReleaseCheck");
-            EmailAddress to = new EmailAddress(toEmail);
-
-            var msg = MailHelper.CreateSingleEmail(from, to, subject, message, message);
-            
-
-            return client.SendEmailAsync(msg);
-        }
-
-        private string BuildMessageString()
-        {
-            StringBuilder message = new StringBuilder();
-
-            if (newBooksToRead.Count > 0)
-            {
-                message.Append($"Hello Josh,\n\nThere were {newBooksToRead.Count} matches to the current criteria.\n\n");
-                //message.Append(String.Format("{0:-30} {1:50} {2:20}\n\n", "Title", "Author", "Release Date"));
-
-                foreach (DigitalBook book in newBooksToRead)
-                {
-                    try
-                    {
-                        Uri tempUri = new Uri(AppSettings.TitleBaseUri, $"title/{book.TitleId}");
-
-                        message.AppendLine(String.Format("Title: {0}\nArtist: {1}\nRelease Date: {2}\n{3}\n\n", book.Title, book.ArtistName, book.ReleaseDateFormatted, tempUri));
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("An exception was caught!  {0}", ex.Message);
-                    }
+                    _log.LogError(ex, ex.Message);
                 }
             }
 
-            return message.ToString();
+            return output;
         }
     }
 }

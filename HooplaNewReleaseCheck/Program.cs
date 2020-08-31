@@ -1,36 +1,67 @@
-﻿using System;
-using System.Net.Http;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Serilog;
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace HooplaNewReleaseCheck
 {
     class Program
     {
-        static readonly HttpClient client = new HttpClient();
-
         static async Task Main()
         {
+            var builder = new ConfigurationBuilder();
+            BuildConfig(builder);
+
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(builder.Build())
+                .CreateLogger();
+
+            Log.Logger.Information("Application Starting");
+
+            var host = Host.CreateDefaultBuilder()
+                .ConfigureServices((context, services) =>
+                {
+                    services.AddTransient<IHooplaResponse, HooplaResponse>();
+                    services.AddTransient<IEmail, Email>();
+                })
+                .UseSerilog()
+                .Build();
+
+            // TODO: Finish integrating DI and logging.
             // TODO: Create a list of titles and authors that I am interested in checking up on.  This list could live in a database, json, Google sheet???? or hardcoded.
             // TODO: Maybe save results to Db.  The would have a null Borrowed dateTime.  This could get updated once the book has been borrowed and read.
 
             try
             {
-                Uri uri = new Uri(AppSettings.HooplaRecentReleasesUrl);
+                var svc = ActivatorUtilities.CreateInstance<HooplaResponse>(host.Services);
+                List<DigitalBook> newBooksToRead = await svc.Run();
 
-                // Without setting Default Request Headers you will receive 500 Error
-                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36");
-                string responseBody = await client.GetStringAsync(uri);
-
-                HooplaResponse hooplaResponse = new HooplaResponse();
-                hooplaResponse.GetBooksFromJson(responseBody);
-
-                await hooplaResponse.SendEmailAsync();
+                if (newBooksToRead != null)
+                {
+                    var eSvc = ActivatorUtilities.CreateInstance<Email>(host.Services);
+                    await eSvc.SendEmailAsync(newBooksToRead);
+                }
             }
-            catch (HttpRequestException ex)
+            catch (Exception ex)
             {
-                Console.WriteLine("\nException Caught!");
-                Console.WriteLine("Message :{0} ", ex.Message);
+                Log.Error(ex, ex.Message);
             }
+            finally
+            {
+                Log.CloseAndFlush();
+            }
+        }
+
+        static void BuildConfig(IConfigurationBuilder builder)
+        {
+            builder.SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
+                .AddEnvironmentVariables();
         }
     }
 }
