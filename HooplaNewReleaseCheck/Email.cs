@@ -48,7 +48,6 @@ namespace HooplaNewReleaseCheck
             if (newBooksToRead.Count > 0)
             {
                 message.Append($"Hello Josh,{Environment.NewLine}There were { newBooksToRead.Count } matches to the current criteria." + Environment.NewLine + Environment.NewLine);
-                //message.Append(String.Format("{0:-30} {1:50} {2:20}\n\n", "Title", "Author", "Release Date"));
 
                 foreach (DigitalBook book in newBooksToRead)
                 {

@@ -31,7 +31,6 @@ namespace HooplaNewReleaseCheck
                 .UseSerilog()
                 .Build();
 
-            // TODO: Finish integrating DI and logging.
             // TODO: Create a list of titles and authors that I am interested in checking up on.  This list could live in a database, json, Google sheet???? or hardcoded.
             // TODO: Maybe save results to Db.  The would have a null Borrowed dateTime.  This could get updated once the book has been borrowed and read.
 
