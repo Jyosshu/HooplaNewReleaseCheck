@@ -58,8 +58,9 @@ namespace HooplaNewReleaseCheck
                     try
                     {
                         Uri tempUri = new Uri($"{ _config.GetValue<string>("TitleBaseUri") }/title/{ book.TitleId }");
-
-                        emailBody.AppendLine($"<tr> <td> <a href=\"{ tempUri }\" target=\"_blank\"> <strong> { book.Title } </strong> </a> <ul> <li> Artist: { book.ArtistName } </li> <li> Release Date: { book.ReleaseDateFormatted } </li> </ul> </td> </tr>");
+                        Uri imageUri = new Uri($"{ _config.GetValue<string>("HooplaImageBaseUrl") }/{ book.ArtKey }_270.jpeg");
+         
+                        emailBody.AppendLine($"<tr> <td> <a href=\"{ tempUri }\" target=\"_blank\"><strong>{ book.Title }</strong> </a> <div> <div class=\"inlineBlock\"> <ul> <li> Artist: { book.ArtistName } </li> <li> Release Date: { book.ReleaseDateFormatted } </li> </ul> </div> <div class=\"inlineBlock\"> <img src=\"{ imageUri }\" > </ div > </ div > </ td > </ tr > ");
                     }
                     catch (Exception ex)
                     {
