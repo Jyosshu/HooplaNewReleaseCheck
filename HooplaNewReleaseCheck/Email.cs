@@ -4,6 +4,7 @@ using SendGrid;
 using SendGrid.Helpers.Mail;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -43,11 +44,14 @@ namespace HooplaNewReleaseCheck
 
         private string BuildMessageString(List<DigitalBook> newBooksToRead)
         {
-            StringBuilder message = new StringBuilder();
+            StringBuilder message = new StringBuilder(ReadHtmlToString());
 
             if (newBooksToRead.Count > 0)
             {
-                message.Append($"Hello Josh,{Environment.NewLine}There were { newBooksToRead.Count } matches to the current criteria." + Environment.NewLine + Environment.NewLine);
+                string emailIntro = $"<p>Hello Josh,</p><p>There were { newBooksToRead.Count } matches to the current criteria.</p>";
+                message.Replace("@ReplaceIntro", emailIntro);
+
+                StringBuilder emailBody = new StringBuilder();
 
                 foreach (DigitalBook book in newBooksToRead)
                 {
@@ -55,16 +59,35 @@ namespace HooplaNewReleaseCheck
                     {
                         Uri tempUri = new Uri($"{ _config.GetValue<string>("TitleBaseUri") }/title/{ book.TitleId }");
 
-                        message.AppendLine(string.Format("Title: {0}{4}Artist: {1}{4}Release Date: {2}{4}{3}{4}{4}", book.Title, book.ArtistName, book.ReleaseDateFormatted, tempUri, Environment.NewLine));
+                        emailBody.AppendLine($"<tr> <td> <a href=\"{ tempUri }\" target=\"_blank\"> <strong> { book.Title } </strong> </a> <ul> <li> Artist: { book.ArtistName } </li> <li> Release Date: { book.ReleaseDateFormatted } </li> </ul> </td> </tr>");
                     }
                     catch (Exception ex)
                     {
                         _log.LogError(ex, ex.Message);
                     }
                 }
+
+                message.Replace("@ReplaceBody", emailBody.ToString());
             }
 
             return message.ToString();
+        }
+
+        private string ReadHtmlToString()
+        {
+            try
+            {
+                string file = _config.GetValue<string>("EmailTemplate");
+                if (File.Exists(file))
+                    return File.ReadAllText(file);
+                else
+                    throw new FileNotFoundException("The email template file: EmailMessage.html was not found.");
+            }
+            catch (IOException ie)
+            {
+                _log.LogError(ie, ie.Message);
+                return null;
+            }
         }
     }
 }

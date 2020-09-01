@@ -41,6 +41,7 @@ namespace HooplaNewReleaseCheck
 
                 if (newBooksToRead != null)
                 {
+                    newBooksToRead.Sort();
                     var eSvc = ActivatorUtilities.CreateInstance<Email>(host.Services);
                     await eSvc.SendEmailAsync(newBooksToRead);
                 }

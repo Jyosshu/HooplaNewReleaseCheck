@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace HooplaNewReleaseCheck
 {
-    public class DigitalBook
+    public class DigitalBook : IComparable<DigitalBook>
     {
         public int TitleId { get; set; }
         public string Title { get; set; }
@@ -20,6 +21,14 @@ namespace HooplaNewReleaseCheck
         public string ReleaseDateFormatted
         {
             get => BaseDate.AddMilliseconds(ReleaseDate).ToLocalTime().ToShortDateString();
+        }
+
+        public int CompareTo(DigitalBook otherBook)
+        {
+            if (otherBook == null)
+                return 1;
+            else
+                return this.Title.CompareTo(otherBook.Title);
         }
     }
 }
