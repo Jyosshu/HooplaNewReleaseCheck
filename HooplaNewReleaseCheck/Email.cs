@@ -23,9 +23,10 @@ namespace HooplaNewReleaseCheck
         public Task SendEmailAsync(List<DigitalBook> newBooksToRead)
         {
             string message = BuildMessageString(newBooksToRead);
+            var sendGridApiKey = _config["SendGrid_Api_Key"];
 
-            return Execute(AppSettings.SendGridApiKey,
-                _config.GetValue<string>("DefaultToEmail"),
+            return Execute(sendGridApiKey,
+                _config["DefaultToEmail"],
                 AppSettings.Subject,
                 message);
         }

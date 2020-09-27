@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using ClassLibrary;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
@@ -27,6 +28,7 @@ namespace HooplaNewReleaseCheck
                 {
                     services.AddTransient<IHooplaResponse, HooplaResponse>();
                     services.AddTransient<IEmail, Email>();
+                    services.AddTransient<IDataAccess, DataAccess>();
                 })
                 .UseSerilog()
                 .Build();

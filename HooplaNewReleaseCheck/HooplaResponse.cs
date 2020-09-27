@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
+using ClassLibrary;
 
 namespace HooplaNewReleaseCheck
 {
@@ -14,24 +15,29 @@ namespace HooplaNewReleaseCheck
     {
         private readonly IConfiguration _config;
         private readonly ILogger<HooplaResponse> _log;
+        private readonly IDataAccess _dataAccess;
 
         static readonly HttpClient client = new HttpClient();
 
-        public HooplaResponse(IConfiguration config, ILogger<HooplaResponse> log)
+        private List<long> _bookHistory;
+
+        public HooplaResponse(IConfiguration config, ILogger<HooplaResponse> log, IDataAccess dataAccess)
         {
             _config = config;
             _log = log;
+            _dataAccess = dataAccess;
         }
 
         public async Task<List<DigitalBook>> Run()
         {
             client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36");
-            List<DigitalBook> digitalBooks = GetBooksFromJson(await client.GetStringAsync(_config.GetValue<string>("HooplaRecentReleasesUrl")));
+            List<DigitalBook> digitalBooks = GetBooksFromJson(await client.GetStringAsync(_config["HooplaRecentReleasesUrl"]));
 
             if (digitalBooks.Count > 0)
             {
-               return FindNewBooksFromList(digitalBooks);
+                _bookHistory = _dataAccess.GetTitleIdsFromDb();
 
+                return FindNewBooksFromList(digitalBooks);
             }
             else
             {
@@ -63,15 +69,22 @@ namespace HooplaNewReleaseCheck
             {
                 try
                 {
-                    if (authors.Any(db.ArtistName.Contains))
+                    if (_bookHistory.Contains(db.TitleId))
                     {
-                        output.Add(db);
-                        _log.LogInformation("Added {0}, by {1} to the list.", db.Title, db.ArtistName);
+                        continue;
                     }
-                    else if (titles.Any(db.Title.Contains))
+                    else
                     {
-                        output.Add(db);
-                        _log.LogInformation("Added {0}, by {1} to the list.", db.Title, db.ArtistName);
+                        if (authors.Any(db.ArtistName.Contains))
+                        {
+                            output.Add(db);
+                            _log.LogInformation("Added {0}, by {1} to the list.", db.Title, db.ArtistName);
+                        }
+                        else if (titles.Any(db.Title.Contains))
+                        {
+                            output.Add(db);
+                            _log.LogInformation("Added {0}, by {1} to the list.", db.Title, db.ArtistName);
+                        }
                     }
                 }
                 catch (Exception ex)
