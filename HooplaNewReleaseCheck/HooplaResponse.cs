@@ -20,6 +20,8 @@ namespace HooplaNewReleaseCheck
         static readonly HttpClient client = new HttpClient();
 
         private List<long> _bookHistory;
+        private List<string> _authorList;
+        private List<string> _titleList;
 
         public HooplaResponse(IConfiguration config, ILogger<HooplaResponse> log, IDataAccess dataAccess)
         {
@@ -36,6 +38,8 @@ namespace HooplaNewReleaseCheck
             if (digitalBooks.Count > 0)
             {
                 _bookHistory = _dataAccess.GetTitleIdsFromDb();
+                _authorList = _dataAccess.GetAuthorsToCheckFromDb();
+                _titleList = _dataAccess.GetTitlesToCheckFromDb();
 
                 return FindNewBooksFromList(digitalBooks);
             }
@@ -61,26 +65,25 @@ namespace HooplaNewReleaseCheck
 
         private List<DigitalBook> FindNewBooksFromList(List<DigitalBook> digitalBooks)
         {
-            string[] authors = _config.GetSection("Authors").Get<string[]>();
-            string[] titles = _config.GetSection("Titles").Get<string[]>();
             List<DigitalBook> output = new List<DigitalBook>();
 
             foreach (DigitalBook db in digitalBooks)
             {
                 try
                 {
+                    // Excluding books that have been previously borrowed and loaded into the database
                     if (_bookHistory.Contains(db.TitleId))
                     {
                         continue;
                     }
                     else
                     {
-                        if (authors.Any(db.ArtistName.Contains))
+                        if (_authorList.Any(db.ArtistName.Contains))
                         {
                             output.Add(db);
                             _log.LogInformation("Added {0}, by {1} to the list.", db.Title, db.ArtistName);
                         }
-                        else if (titles.Any(db.Title.Contains))
+                        else if (_titleList.Any(db.Title.Contains))
                         {
                             output.Add(db);
                             _log.LogInformation("Added {0}, by {1} to the list.", db.Title, db.ArtistName);
