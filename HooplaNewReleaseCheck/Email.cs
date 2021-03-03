@@ -1,5 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SendGrid;
 using SendGrid.Helpers.Mail;
 using System;
@@ -12,21 +12,21 @@ namespace HooplaNewReleaseCheck
 {
     public class Email : IEmail
     {
-        private readonly IConfiguration _config;
         private readonly ILogger<Email> _log;
+        private readonly IOptions<AppSettings> _appSettings;
 
-        public Email(IConfiguration config, ILogger<Email> log)
+        public Email(IOptions<AppSettings> appSettings, ILogger<Email> log)
         {
-            _config = config;
             _log = log;
+            _appSettings = appSettings;
         }
         public Task SendEmailAsync(List<DigitalBook> newBooksToRead)
         {
             string message = BuildMessageString(newBooksToRead);
-            var sendGridApiKey = _config["SendGrid_Api_Key"];
+            var sendGridApiKey = AppSettings.SendGridApiKey;
 
             return Execute(sendGridApiKey,
-                _config["DefaultToEmail"],
+                _appSettings.Value.DefaultToEmail,
                 AppSettings.Subject,
                 message);
         }
@@ -35,7 +35,7 @@ namespace HooplaNewReleaseCheck
         {
             var client = new SendGridClient(apiKey);
 
-            EmailAddress from = new EmailAddress(_config.GetValue<string>("DefaultFromEmail"), "HooplaNewReleaseCheck");
+            EmailAddress from = new EmailAddress(_appSettings.Value.DefaultFromEmail, "HooplaNewReleaseCheck");
             EmailAddress to = new EmailAddress(toEmail);
 
             var msg = MailHelper.CreateSingleEmail(from, to, subject, message, message);
@@ -58,8 +58,8 @@ namespace HooplaNewReleaseCheck
                 {
                     try
                     {
-                        Uri tempUri = new Uri($"{ _config.GetValue<string>("TitleBaseUri") }/title/{ book.TitleId }");
-                        Uri imageUri = new Uri($"{ _config.GetValue<string>("HooplaImageBaseUrl") }/{ book.ArtKey }_270.jpeg");
+                        Uri tempUri = new Uri($"{ _appSettings.Value.TitleBaseUrl }/title/{ book.TitleId }");
+                        Uri imageUri = new Uri($"{ _appSettings.Value.HooplaImageBaseUrl }/{ book.ArtKey }_270.jpeg");
          
                         emailBody.AppendLine($"<tr> <td> <a href=\"{ tempUri }\" target=\"_blank\"><strong>{ book.Title }</strong> </a> <div> <div class=\"inlineBlock\"> <ul> <li> Artist: { book.ArtistName } </li> <li> Release Date: { book.ReleaseDateFormatted } </li> </ul> </div> <div class=\"inlineBlock\"> <a href=\"{ tempUri }\" target=\"_blank\"><img src=\"{ imageUri }\" > </a> </ div > </ div > </ td > </ tr > ");
                     }
@@ -79,11 +79,10 @@ namespace HooplaNewReleaseCheck
         {
             try
             {
-                string file = _config.GetValue<string>("EmailTemplate");
-                if (File.Exists(file))
-                    return File.ReadAllText(file);
+                if (File.Exists(_appSettings.Value.EmailTemplate))
+                    return File.ReadAllText(_appSettings.Value.EmailTemplate);
                 else
-                    throw new FileNotFoundException("The email template file: EmailMessage.html was not found.");
+                    throw new FileNotFoundException($"The email template file: { _appSettings.Value.EmailTemplate } was not found.");
             }
             catch (IOException ie)
             {

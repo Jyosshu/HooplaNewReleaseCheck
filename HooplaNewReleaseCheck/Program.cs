@@ -26,6 +26,7 @@ namespace HooplaNewReleaseCheck
             var host = Host.CreateDefaultBuilder()
                 .ConfigureServices((context, services) =>
                 {
+                    services.Configure<AppSettings>(context.Configuration.GetSection("AppSettings"));
                     services.AddTransient<IHooplaResponse, HooplaResponse>();
                     services.AddTransient<IEmail, Email>();
                     services.AddTransient<IDataAccess, DataAccess>();

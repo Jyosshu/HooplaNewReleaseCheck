@@ -8,12 +8,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
 using ClassLibrary;
+using Microsoft.Extensions.Options;
 
 namespace HooplaNewReleaseCheck
 {
     public class HooplaResponse : IHooplaResponse
     {
-        private readonly IConfiguration _config;
+        private readonly IOptions<AppSettings> _appSettings;
         private readonly ILogger<HooplaResponse> _log;
         private readonly IDataAccess _dataAccess;
 
@@ -23,9 +24,9 @@ namespace HooplaNewReleaseCheck
         private List<string> _authorList;
         private List<string> _titleList;
 
-        public HooplaResponse(IConfiguration config, ILogger<HooplaResponse> log, IDataAccess dataAccess)
+        public HooplaResponse(IOptions<AppSettings> appSettings, ILogger<HooplaResponse> log, IDataAccess dataAccess)
         {
-            _config = config;
+            _appSettings = appSettings;
             _log = log;
             _dataAccess = dataAccess;
         }
@@ -33,7 +34,7 @@ namespace HooplaNewReleaseCheck
         public async Task<List<DigitalBook>> Run()
         {
             client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36");
-            List<DigitalBook> digitalBooks = GetBooksFromJson(await client.GetStringAsync(_config["HooplaRecentReleasesUrl"]));
+            List<DigitalBook> digitalBooks = GetBooksFromJson(await client.GetStringAsync(_appSettings.Value.HooplaRecentReleasesUrl));
 
             if (digitalBooks.Count > 0)
             {
