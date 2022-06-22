@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
@@ -55,7 +54,12 @@ namespace HooplaNewReleaseCheck
         {
             try
             {
-                return JsonConvert.DeserializeObject<List<DigitalBook>>(jsonResponse);
+                var jsonOptions = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                return JsonSerializer.Deserialize<List<DigitalBook>>(jsonResponse, jsonOptions);
             }
             catch (JsonException je)
             {
